@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Extrator Automático de Negrito - Google Docs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 15px auto;
+            padding: 0 10px;
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .area-editor {
+            border: 1px solid #ccc;
+            height: 150px;
+            padding: 10px;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            resize: vertical;
+            font-size: 14px;
+        }
+        
+        .area-editor:focus {
+            outline: none;
+            border-color: #4285f4;
+        }
+        
+        /* Adiciona uma alça de redimensionamento mais visível */
+        .area-editor::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            cursor: se-resize;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            resize: vertical;
+        }
+        
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 5px 0;
+        }
+        
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 15px;
+        }
+        
+        button:hover {
+            background-color: #2b6abc;
+        }
+        
+        #copiarBtn {
+            background-color: #0f9d58;
+        }
+        
+        #copiarBtn:hover {
+            background-color: #0b8043;
+        }
+        
+        .instrucoes {
+            background-color: #f8f9fa;
+            padding: 8px 12px;
+            border-left: 3px solid #4285f4;
+            line-height: 1.5;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .destaque {
+            font-weight: bold;
+            color: #d32f2f;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .info-log {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            font-family: monospace;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Extrator Automático de Negrito - Google Docs</h2>
+    
+    <div class="instrucoes">
+        <p>Cole seu texto do Google Docs na área abaixo (<strong>Ctrl+V</strong>)</p>
+    </div>
+    
+    <div class="container">
+        <div id="editorArea" class="area-editor" contenteditable="true" placeholder="Cole aqui seu texto do Google Docs..."></div>
+        
+        <div class="buttons">
+            <button id="extrairBtn" onclick="extrairNegrito()">Extrair Texto em Negrito</button>
+        </div>
+        
+        <textarea id="resultado" readonly placeholder="Resultado aparecerá aqui..."></textarea>
+        
+        <div class="buttons">
+            <button id="copiarBtn" onclick="copiarResultado()">Copiar Resultado</button>
+        </div>
+        
+        <div id="infoLog" class="info-log hidden"></div>
+    </div>
+    
+    <script>
+        // Evento para capturar a colagem e preservar a formatação
+        document.getElementById('editorArea').addEventListener('paste', function(e) {
+            // Tenta preservar a formatação original
+            e.preventDefault();
+            
+            const clipboardData = e.clipboardData || window.clipboardData;
+            let pastedData = "";
+            
+            // Tenta obter o HTML do clipboard (preserva formatação)
+            if (clipboardData.types.includes('text/html')) {
+                pastedData = clipboardData.getData('text/html');
+                this.innerHTML = pastedData;
+                logInfo("HTML colado com formatação preservada");
+            } else {
+                // Fallback para texto simples
+                pastedData = clipboardData.getData('text/plain');
+                this.textContent = pastedData;
+                logInfo("Apenas texto simples colado (sem formatação)");
+            }
+            
+            // Extrair negrito automaticamente após a colagem
+            setTimeout(extrairNegrito, 100);
+        });
+        
+        // Função para extrair texto em negrito
+        function extrairNegrito() {
+            const editorArea = document.getElementById('editorArea');
+            const resultado = document.getElementById('resultado');
+            
+            logInfo("Iniciando extração de texto em negrito...");
+            
+            // Array para armazenar textos em negrito
+            let textosEmNegrito = [];
+            
+            // Método 1: Procurar spans com estilo font-weight: 700/bold (padrão Google Docs)
+            const spansGDocs = editorArea.querySelectorAll('span[style*="font-weight:700"], span[style*="font-weight: 700"], span[style*="font-weight:bold"], span[style*="font-weight: bold"]');
+            
+            logInfo(`Método 1: Encontrados ${spansGDocs.length} spans com estilo em negrito`);
+            
+            spansGDocs.forEach(span => {
+                if (span.textContent.trim()) {
+                    textosEmNegrito.push(span.textContent.trim());
+                    logInfo(`Texto em negrito encontrado: "${span.textContent.trim()}"`);
+                }
+            });
+            
+            // Método 2: Se o método 1 não encontrar nada, procurar elementos B e STRONG
+            if (textosEmNegrito.length === 0) {
+                const elementosB = editorArea.querySelectorAll('b, strong');
+                
+                logInfo(`Método 2: Encontrados ${elementosB.length} elementos <b> ou <strong>`);
+                
+                elementosB.forEach(elem => {
+                    if (elem.textContent.trim()) {
+                        textosEmNegrito.push(elem.textContent.trim());
+                        logInfo(`Texto em negrito encontrado: "${elem.textContent.trim()}"`);
+                    }
+                });
+            }
+            
+            // Método 3: Se os métodos anteriores não encontrarem nada, usar computed style
+            if (textosEmNegrito.length === 0) {
+                logInfo("Método 3: Verificando computed style para todos os elementos");
+                
+                const todosElementos = editorArea.querySelectorAll('*');
+                todosElementos.forEach(elem => {
+                    const estilo = window.getComputedStyle(elem);
+                    
+                    // Verifica se o peso da fonte é pelo menos 700 (bold)
+                    if (estilo.fontWeight >= 700 || estilo.fontWeight === 'bold') {
+                        // Verifica se é um elemento folha (não contém outros elementos em negrito)
+                        if (elem.querySelectorAll('*').length === 0) {
+                            if (elem.textContent.trim()) {
+                                textosEmNegrito.push(elem.textContent.trim());
+                                logInfo(`Texto em negrito encontrado via computed style: "${elem.textContent.trim()}"`);
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Exibe o resultado
+            if (textosEmNegrito.length > 0) {
+                resultado.value = textosEmNegrito.join('\n');
+                logInfo(`Total de ${textosEmNegrito.length} textos em negrito extraídos com sucesso`);
+            } else {
+                resultado.value = "Nenhum texto em negrito encontrado. Verifique se seu texto possui formatação em negrito.";
+                logInfo("Nenhum texto em negrito encontrado");
+            }
+        }
+        
+        // Função para copiar o resultado
+        function copiarResultado() {
+            const resultado = document.getElementById('resultado');
+            resultado.select();
+            document.execCommand('copy');
+            
+            // Mostra mensagem temporária no botão
+            const botaoCopiar = document.getElementById('copiarBtn');
+            const textoOriginal = botaoCopiar.textContent;
+            botaoCopiar.textContent = 'Copiado!';
+            
+            setTimeout(() => {
+                botaoCopiar.textContent = textoOriginal;
+            }, 1500);
+        }
+        
+        // Função para registrar informações para depuração
+        function logInfo(message) {
+            const infoLog = document.getElementById('infoLog');
+            const now = new Date().toLocaleTimeString();
+            
+            infoLog.textContent += `[${now}] ${message}\n`;
+            infoLog.scrollTop = infoLog.scrollHeight;
+            
+            // Mostra o log para fins de depuração
+            infoLog.classList.remove('hidden');
+        }
+        
+        // Limpa o log ao carregar a página
+        window.onload = function() {
+            document.getElementById('infoLog').textContent = '';
+        };
+    </script>
+</body>
+</html>
