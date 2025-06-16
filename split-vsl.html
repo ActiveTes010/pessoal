@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Separador de Texto - Preserva Formatação</title>
+    <title>Separador de Texto - Versão Híbrida</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -17,11 +17,6 @@
             color: #333;
         }
         
-        .editor-container {
-            width: 100%;
-            margin-bottom: 10px;
-        }
-        
         .editor-area {
             width: 100%;
             height: 180px;
@@ -31,17 +26,16 @@
             margin-bottom: 10px;
             font-size: 16px;
             overflow-y: auto;
-            white-space: pre-wrap;
+            background-color: #fff;
         }
         
-        #entradaHTML {
-            min-height: 180px;
+        #entrada {
             resize: vertical;
         }
         
-        #resultadoHTML {
-            min-height: 180px;
+        #resultado {
             background-color: #f9f9f9;
+            resize: vertical;
         }
         
         .options {
@@ -91,10 +85,10 @@
             visibility: hidden;
         }
         
-        .instrucoes {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-left: 4px solid #4a6da7;
+        .instrucao {
+            background-color: #e3f2fd;
+            padding: 8px 12px;
+            border-left: 4px solid #2196f3;
             margin-bottom: 15px;
             font-size: 14px;
         }
@@ -103,13 +97,11 @@
 <body>
     <h2>Separador de Texto - Preserva Formatação</h2>
     
-    <div class="instrucoes">
-        <p>Este separador mantém formatações como <strong>negrito</strong>, <span style="text-decoration:underline;background-color:yellow;">sublinhado amarelo</span> e outras formatações ao separar o texto em frases.</p>
+    <div class="instrucao">
+        Cole seu texto formatado do Google Docs abaixo. Manterá negritos, sublinhados e cores ao separar as frases.
     </div>
     
-    <div class="editor-container">
-        <div id="entradaHTML" class="editor-area" contenteditable="true" placeholder="Cole seu texto formatado aqui..."></div>
-    </div>
+    <div id="entrada" class="editor-area" contenteditable="true" placeholder="Cole seu texto formatado aqui..."></div>
     
     <div class="options">
         <label>
@@ -123,13 +115,11 @@
     </div>
     
     <div class="btn-group">
-        <button onclick="separarFrasesHTML()">Separar Frases</button>
+        <button onclick="separarFrases()">Separar Frases</button>
         <button onclick="limparCampos()" style="background-color: #6c757d;">Limpar</button>
     </div>
     
-    <div class="editor-container">
-        <div id="resultadoHTML" class="editor-area" contenteditable="false"></div>
-    </div>
+    <div id="resultado" class="editor-area"></div>
     
     <div style="text-align: center; margin-top: 5px;">
         <button onclick="copiarResultado()" class="copy-btn">Copiar Resultado</button>
@@ -137,120 +127,101 @@
     </div>
     
     <script>
-        // Função para separar frases preservando formatação HTML
-        function separarFrasesHTML() {
-            const editorEntrada = document.getElementById("entradaHTML");
-            const editorResultado = document.getElementById("resultadoHTML");
-            const conteudoHTML = editorEntrada.innerHTML;
+        // Aplica a mesma lógica do código original, mas preservando HTML
+        function separarFrases() {
+            const entrada = document.getElementById("entrada");
+            const resultado = document.getElementById("resultado");
             
-            // Cria um elemento temporário para trabalhar com o HTML
+            // Primeiro extraímos o texto puro para aplicar a lógica original
+            const textoHTML = entrada.innerHTML;
+            
+            // Remove placeholder se existir
+            if (textoHTML.includes('Cole seu texto formatado aqui')) {
+                resultado.innerHTML = "Nenhum texto para processar.";
+                return;
+            }
+            
+            // Cria elemento temporário para extrair texto limpo
             const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = conteudoHTML;
+            tempDiv.innerHTML = textoHTML;
+            const textoLimpo = tempDiv.textContent || tempDiv.innerText;
             
-            // Encontra todos os nós de texto no elemento
-            const textNodes = [];
-            findTextNodes(tempDiv, textNodes);
+            // Aplica a mesma lógica do código original
+            const paragrafos = textoLimpo.split(/\n+/).filter(p => p.trim() !== '');
+            let todasFrases = [];
             
-            // Processa cada nó de texto para separar as frases
-            for (let i = 0; i < textNodes.length; i++) {
-                const node = textNodes[i];
-                const texto = node.nodeValue;
-                
-                // Expressão regular para encontrar frases
+            paragrafos.forEach(paragrafo => {
+                // Identifica frases terminadas com .!?
                 const regex = /[^.!?]+[.!?]+/g;
-                const frases = texto.match(regex);
+                const frases = paragrafo.match(regex) || [];
                 
-                if (frases && frases.length > 1) {
-                    // Se encontrou múltiplas frases, substitui o nó
-                    const novoConteudo = document.createDocumentFragment();
-                    let lastIndex = 0;
-                    
-                    // Para cada frase encontrada
-                    for (let j = 0; j < frases.length; j++) {
-                        const frase = frases[j];
-                        const startPos = texto.indexOf(frase, lastIndex);
-                        
-                        // Adiciona qualquer texto antes da frase atual
-                        if (startPos > lastIndex) {
-                            novoConteudo.appendChild(document.createTextNode(texto.substring(lastIndex, startPos)));
-                        }
-                        
-                        // Adiciona a frase atual
-                        novoConteudo.appendChild(document.createTextNode(frase));
-                        
-                        // Adiciona quebra de linha após cada frase (exceto a última)
-                        if (j < frases.length - 1) {
-                            // Verifica qual opção de separação foi selecionada
-                            const tipoSeparacao = document.querySelector('input[name="separacao"]:checked').value;
-                            
-                            // Uma ou duas quebras de linha conforme a opção
-                            if (tipoSeparacao === "duplo") {
-                                novoConteudo.appendChild(document.createElement('br'));
-                                novoConteudo.appendChild(document.createElement('br'));
-                            } else {
-                                novoConteudo.appendChild(document.createElement('br'));
-                            }
-                        }
-                        
-                        lastIndex = startPos + frase.length;
-                    }
-                    
-                    // Adiciona qualquer texto restante
-                    if (lastIndex < texto.length) {
-                        novoConteudo.appendChild(document.createTextNode(texto.substring(lastIndex)));
-                    }
-                    
-                    // Substitui o nó original pelo fragmento criado
-                    node.parentNode.replaceChild(novoConteudo, node);
-                    
-                    // Como modificamos a árvore DOM, precisamos atualizar a lista de nós
-                    textNodes.splice(i, 1);
-                    i--;
+                // Se não encontrar frases completas, adiciona o parágrafo inteiro
+                if (frases.length === 0 && paragrafo.trim() !== '') {
+                    todasFrases.push(paragrafo.trim());
+                } else {
+                    todasFrases = todasFrases.concat(frases.map(f => f.trim()));
                 }
+            });
+            
+            // Se temos apenas uma frase, não precisa separar
+            if (todasFrases.length <= 1) {
+                resultado.innerHTML = textoHTML;
+                return;
             }
             
-            // Atualiza o resultado
-            editorResultado.innerHTML = tempDiv.innerHTML;
-        }
-        
-        // Função recursiva para encontrar todos os nós de texto em um elemento
-        function findTextNodes(node, result) {
-            if (node.nodeType === 3) { // Nó de texto
-                result.push(node);
-            } else if (node.nodeType === 1) { // Elemento
-                for (let i = 0; i < node.childNodes.length; i++) {
-                    findTextNodes(node.childNodes[i], result);
-                }
+            // Agora aplicamos a separação no HTML mantendo a formatação
+            let htmlProcessado = textoHTML;
+            
+            // Verifica qual opção de separação foi selecionada
+            const tipoSeparacao = document.querySelector('input[name="separacao"]:checked').value;
+            
+            // Substitui pontos seguidos de espaço e letra maiúscula
+            const regexSeparacao = /([.!?])\s+(?=[A-ZÀ-Ú\n])/g;
+            
+            if (tipoSeparacao === "duplo") {
+                htmlProcessado = htmlProcessado.replace(regexSeparacao, '$1<br><br>');
+            } else {
+                htmlProcessado = htmlProcessado.replace(regexSeparacao, '$1<br>');
             }
+            
+            // Limpa quebras de linha extras
+            htmlProcessado = htmlProcessado.replace(/<br>\s*<br>\s*<br>/g, '<br><br>');
+            
+            resultado.innerHTML = htmlProcessado;
         }
         
-        // Evento de colagem para preservar a formatação
-        document.getElementById('entradaHTML').addEventListener('paste', function(e) {
-            // Previne a ação padrão de colar
+        // Gerencia a colagem preservando formatação
+        document.getElementById('entrada').addEventListener('paste', function(e) {
             e.preventDefault();
             
-            // Obtém o conteúdo da área de transferência
             let html = '';
             if (e.clipboardData && e.clipboardData.getData) {
-                // Tenta obter dados formatados em HTML
                 if (e.clipboardData.types.includes('text/html')) {
                     html = e.clipboardData.getData('text/html');
                 } else {
-                    // Se não houver HTML, usa texto simples
                     const text = e.clipboardData.getData('text/plain');
                     html = text.replace(/\n/g, '<br>');
                 }
                 
-                // Insere o conteúdo no editor
+                // Remove o placeholder se existir
+                if (this.innerHTML.includes('Cole seu texto formatado aqui')) {
+                    this.innerHTML = '';
+                }
+                
+                // Insere o HTML formatado
                 document.execCommand('insertHTML', false, html);
             }
         });
         
-        // Função para copiar o resultado
         function copiarResultado() {
-            const resultado = document.getElementById("resultadoHTML");
+            const resultado = document.getElementById("resultado");
             
-            // Cria uma seleção do conteúdo
+            if (!resultado.innerHTML.trim() || resultado.innerHTML.includes('Cole seu texto formatado aqui')) {
+                alert('Nenhum resultado para copiar. Processe o texto primeiro.');
+                return;
+            }
+            
+            // Seleciona todo o conteúdo formatado
             const range = document.createRange();
             range.selectNodeContents(resultado);
             
@@ -258,48 +229,54 @@
             selection.removeAllRanges();
             selection.addRange(range);
             
-            // Copia para a área de transferência
-            document.execCommand("copy");
-            
-            // Limpa a seleção
-            selection.removeAllRanges();
-            
-            // Mostra mensagem de copiado
-            const copyMsg = document.getElementById("copyMsg");
-            copyMsg.style.visibility = "visible";
-            
-            // Esconde a mensagem após 1.5 segundos
-            setTimeout(() => {
-                copyMsg.style.visibility = "hidden";
-            }, 1500);
+            try {
+                // Copia mantendo a formatação
+                document.execCommand("copy");
+                
+                // Mostra mensagem de copiado
+                const copyMsg = document.getElementById("copyMsg");
+                copyMsg.style.visibility = "visible";
+                
+                setTimeout(() => {
+                    copyMsg.style.visibility = "hidden";
+                }, 1500);
+                
+            } catch (err) {
+                alert('Erro ao copiar. Tente selecionar manualmente.');
+            } finally {
+                selection.removeAllRanges();
+            }
         }
         
-        // Função para limpar os campos
         function limparCampos() {
-            document.getElementById("entradaHTML").innerHTML = "";
-            document.getElementById("resultadoHTML").innerHTML = "";
+            document.getElementById("entrada").innerHTML = "";
+            document.getElementById("resultado").innerHTML = "";
+            
+            // Restaura o placeholder
+            const entrada = document.getElementById("entrada");
+            entrada.innerHTML = '<span style="color:#999;font-style:italic;">Cole seu texto formatado aqui...</span>';
         }
         
         // Inicialização
         window.onload = function() {
-            const entradaHTML = document.getElementById("entradaHTML");
+            const entrada = document.getElementById("entrada");
             
-            // Adiciona placeholder
-            entradaHTML.addEventListener('focus', function() {
-                if (this.innerHTML.trim() === '' || this.innerHTML.includes('Cole seu texto formatado aqui')) {
+            // Gerencia placeholder
+            entrada.addEventListener('focus', function() {
+                if (this.innerHTML.includes('Cole seu texto formatado aqui')) {
                     this.innerHTML = '';
                 }
             });
             
-            entradaHTML.addEventListener('blur', function() {
+            entrada.addEventListener('blur', function() {
                 if (this.textContent.trim() === '') {
                     this.innerHTML = '<span style="color:#999;font-style:italic;">Cole seu texto formatado aqui...</span>';
                 }
             });
             
-            // Inicializa o placeholder
-            if (entradaHTML.textContent.trim() === '') {
-                entradaHTML.innerHTML = '<span style="color:#999;font-style:italic;">Cole seu texto formatado aqui...</span>';
+            // Inicializa placeholder
+            if (entrada.textContent.trim() === '') {
+                entrada.innerHTML = '<span style="color:#999;font-style:italic;">Cole seu texto formatado aqui...</span>';
             }
         };
     </script>
